@@ -13,7 +13,7 @@ module.exports = {
 
   async execute({ api, event }) {
     const { threadID } = event;
-    const name = (config.bot && config.bot.name) || "Phoenix";
+    const name = (config.bot && config.bot.name) || "tesla";
 
     await api.sendMessage(
       [

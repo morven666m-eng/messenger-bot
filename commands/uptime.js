@@ -174,7 +174,7 @@
   function drawUptimePanel(ctx, x, y, w, h, value, label, isActive) {
     const r = 10;
     // Shadow
-    ctx.shadowColor = isActive ? "rgba(88,166,255,0.3)" : "rgba(0,0,0,0.5)";
+    ctx.shadowColor = isActive ? "rgba(232,38,60,0.35)" : "rgba(0,0,0,0.5)";
     ctx.shadowBlur = isActive ? 20 : 8;
 
     // Panel background
@@ -186,7 +186,7 @@
 
     // Panel border
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = isActive ? "#2a3a5a" : "#252535";
+    ctx.strokeStyle = isActive ? "#5a1a22" : "#252535";
     ctx.lineWidth = 1.5;
     rrect(ctx, x, y, w, h, r); ctx.stroke();
 
@@ -206,9 +206,9 @@
       ctx.beginPath(); ctx.moveTo(x + 2, ly); ctx.lineTo(x + w - 2, ly); ctx.stroke();
     }
 
-    // Value text
-    ctx.shadowColor = "#7ab8ff"; ctx.shadowBlur = 12;
-    ctx.fillStyle = "#c8deff";
+    // Value text — Tesla red glow
+    ctx.shadowColor = "#e8263c"; ctx.shadowBlur = 12;
+    ctx.fillStyle = "#ffccd0";
     ctx.font = f(44);
     ctx.textAlign = "center";
     ctx.fillText(value, x + w / 2, y + h / 2 + 16);
@@ -278,34 +278,34 @@
     ctx.strokeStyle = "#1e2035"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, 68); ctx.lineTo(W, 68); ctx.stroke();
 
-    // Online dot
-    ctx.shadowColor = "#3fff7a"; ctx.shadowBlur = 14;
-    ctx.fillStyle = "#3fff7a";
+    // Online dot — Tesla red
+    ctx.shadowColor = "#e8263c"; ctx.shadowBlur = 14;
+    ctx.fillStyle = "#e8263c";
     ctx.beginPath(); ctx.arc(26, 34, 7, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
-    // MADOX label
-    ctx.fillStyle = "#b8c8e0";
+    // TESLA label
+    ctx.fillStyle = "#f0e0e0";
     ctx.font = f(16); ctx.textAlign = "left";
-    ctx.fillText((info.botName || "PHOENIX").toUpperCase(), 44, 40);
+    ctx.fillText((info.botName || "TESLA").toUpperCase(), 44, 40);
 
-    // ── ONLINE hexagon badge ─────────────────────────────────────────────────
+    // ── ONLINE hexagon badge — Tesla electric red ────────────────────────────
     const hexRx = 60, hexRy = 26;
     const hexCx = W / 2, hexCy = 34;
     // Glow
-    ctx.shadowColor = "#3fff7a"; ctx.shadowBlur = 24;
-    ctx.strokeStyle = "#1a4030"; ctx.lineWidth = 8;
+    ctx.shadowColor = "#e8263c"; ctx.shadowBlur = 24;
+    ctx.strokeStyle = "#3a0810"; ctx.lineWidth = 8;
     hexPath(ctx, hexCx, hexCy, hexRx + 6, hexRy + 4); ctx.stroke();
     ctx.shadowBlur = 0;
     // Fill
-    ctx.fillStyle = "#061812";
+    ctx.fillStyle = "#180408";
     hexPath(ctx, hexCx, hexCy, hexRx, hexRy); ctx.fill();
     // Border
-    ctx.strokeStyle = "#3fff7a"; ctx.lineWidth = 2;
+    ctx.strokeStyle = "#e8263c"; ctx.lineWidth = 2;
     hexPath(ctx, hexCx, hexCy, hexRx, hexRy); ctx.stroke();
     // Text
-    ctx.shadowColor = "#3fff7a"; ctx.shadowBlur = 10;
-    ctx.fillStyle = "#3fff7a";
+    ctx.shadowColor = "#e8263c"; ctx.shadowBlur = 10;
+    ctx.fillStyle = "#e8263c";
     ctx.font = f(15); ctx.textAlign = "center";
     ctx.fillText("ONLINE", hexCx, hexCy + 6);
     ctx.shadowBlur = 0;
@@ -321,8 +321,13 @@
     ctx.font = f(12, false); ctx.textAlign = "center";
     ctx.fillText("v" + info.version, vbX + vbW / 2, vbY + vbH / 2 + 5);
 
-    // ── Lock icon (top right) ─────────────────────────────────────────────────
-    drawLock(ctx, W - 34, 34, info.locked > 0);
+    // ── Lightning bolt accent (top right) — Tesla symbol ─────────────────────
+    ctx.shadowColor = "#e8263c"; ctx.shadowBlur = 10;
+    ctx.fillStyle = "#e8263c";
+    ctx.font = f(20); ctx.textAlign = "center";
+    ctx.fillText("⚡", W - 34, 42);
+    ctx.shadowBlur = 0;
+    drawLock(ctx, W - 70, 34, info.locked > 0);
 
     // ── RAM chip (top left of uptime section) ─────────────────────────────────
     drawChip(ctx, 24, 80, 54, 32);
@@ -484,7 +489,7 @@
       const admins   = Array.isArray(config.bot.adminIDs) ? config.bot.adminIDs.length : 0;
 
       const info = {
-        botName:  config.bot.name  || "PHOENIX",
+        botName:  config.bot.name  || "TESLA",
         version:  config.bot.version || "2.1.0",
         prefix:   config.prefix    || "-",
         days, hours, mins, secs,

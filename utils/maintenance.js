@@ -14,7 +14,7 @@ const TMP_DIR    = os.tmpdir();
 const TMP_PATTERNS    = [
   /^uptime_\d+\.png$/,
   /^music_\d+\./,
-  /^phoenix_\d+\./,
+  /^tesla_\d+\./,
   /^img_\d+\.jpg$/,
   /^imagine_\d+\.jpg$/,
 ];
