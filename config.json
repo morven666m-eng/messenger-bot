@@ -1,0 +1,66 @@
+{
+  "_comment": "Bot configuration file.",
+  "prefix": "-",
+  "credentials": {
+    "_comment": "Optional email/password for auto re-login.",
+    "email": "",
+    "password": ""
+  },
+  "appStatePath": "./appstate.json",
+  "bot": {
+    "name": "Phoenix",
+    "version": "2.1.0",
+    "adminIDs": [
+      "61590180224489"
+    ],
+    "language": "en"
+  },
+  "features": {
+    "autoSaveAppState": true,
+    "autoSaveIntervalMs": 900000,
+    "greetNewMembers": false,
+    "farewellMembers": false,
+    "antiSpam": true,
+    "antiSpamCooldownMs": 2000,
+    "logMessages": true
+  },
+  "humanSimulator": {
+    "_comment": "Human simulation — makes the account look like a real person to Facebook.",
+    "enabled": true,
+    "presenceIntervalMs": 300000,
+    "typingIntervalMs": 480000,
+    "readIntervalMs": 180000,
+    "jitterMs": 30000,
+    "maxTypingMs": 4000,
+    "maxGroupsPerCycle": 3
+  },
+  "dashboard": {
+    "_comment": "Dashboard API — set apiKey to a strong secret.",
+    "apiKey": "changeme-set-a-strong-secret",
+    "port": 3001
+  },
+  "messages": {
+    "greet": "أهلاً {name}! 👋 مرحباً بك في المجموعة.",
+    "farewell": "وداعاً {name} سنفتقدك! 👋",
+    "commandNotFound": "✗ الأمر '{cmd}' غير موجود.\nاكتب {prefix}help لعرض الأوامر.",
+    "errorOccurred": "⚠️ حدث خطأ أثناء تنفيذ الأمر. حاول مجدداً.",
+    "botRestarted": "✅ تمت استعادة جلسة البوت بنجاح!",
+    "noPermission": "✗ ليس لديك صلاحية لتنفيذ هذا الأمر.",
+    "groupOnly": "✗ هذا الأمر للمجموعات فقط.",
+    "adminOnly": "✗ هذا الأمر للمشرفين فقط."
+  },
+  "loginOptions": {
+    "online": true,
+    "selfListen": false,
+    "listenEvents": true,
+    "listenTyping": false,
+    "autoMarkRead": false,
+    "autoMarkDelivery": false,
+    "autoReconnect": true,
+    "simulateTyping": false,
+    "forceLogin": false,
+    "maxConcurrentRequests": 3,
+    "maxRequestsPerMinute": 30,
+    "requestCooldownMs": 2000
+  }
+}
