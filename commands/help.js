@@ -29,7 +29,7 @@ const CATEGORIES = [
       { cmd: "rename",        aliases: "",           desc: "تغيير / قفل اسم المجموعة" },
       { cmd: "rename unlock", aliases: "",           desc: "رفع قفل الاسم" },
       { cmd: "nickname",      aliases: "",           desc: "تعيين / قفل / مسح الكنيات" },
-      { cmd: "autoreply",     aliases: "",           desc: "إدارة الردود التلقائية" },
+      { cmd: "autoreply",     aliases: "auto · sch",  desc: "جدولة رسائل تلقائية متكررة" },
     ],
   },
   {

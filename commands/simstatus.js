@@ -1,22 +1,25 @@
 "use strict";
 
+const fmt            = require("../utils/fmt");
 const humanSimulator = require("../utils/humanSimulator");
 
 function timeAgo(ms) {
   if (!ms) return "لم يبدأ بعد";
   const sec = Math.floor((Date.now() - ms) / 1000);
-  if (sec < 60)  return "منذ " + sec + " ث";
+  if (sec < 60)   return "منذ " + sec + " ث";
   if (sec < 3600) return "منذ " + Math.floor(sec / 60) + " دق";
-  return "منذ " + Math.floor(sec / 3600) + " س " + Math.floor((sec % 3600) / 60) + " دق";
+  return "منذ " + Math.floor(sec / 3600) + "س " + Math.floor((sec % 3600) / 60) + "د";
 }
 
-function uptime(ms) {
+function elapsed(ms) {
   if (!ms) return "—";
   const sec = Math.floor((Date.now() - ms) / 1000);
   const h   = Math.floor(sec / 3600);
   const m   = Math.floor((sec % 3600) / 60);
   const s   = sec % 60;
-  return h + "س " + m + "د " + s + "ث";
+  if (h > 0) return h + "س " + m + "د";
+  if (m > 0) return m + "د " + s + "ث";
+  return s + "ث";
 }
 
 const ACTION_LABELS = {
@@ -31,39 +34,41 @@ const ACTION_LABELS = {
 };
 
 module.exports = {
-  name: "simstatus",
-  aliases: ["sim", "محاكي"],
-  description: "عرض إحصائيات محاكي الإنسان (anti-detection).",
-  usage: "simstatus",
-  category: "Admin",
-  adminOnly: true,
+  name:        "simstatus",
+  aliases:     ["sim", "محاكي"],
+  description: "حالة محاكي الإنسان — إحصائيات anti-detection.",
+  usage:       "simstatus",
+  category:    "Admin",
+  adminOnly:   true,
 
   async execute({ api, event }) {
     const { threadID } = event;
-    const s = humanSimulator.status();
+    const s  = humanSimulator.status();
     const st = s.stats;
 
-    const statusIcon = s.running ? "🟢 يعمل" : "🔴 متوقف";
     const lastAction = ACTION_LABELS[st.lastActionType] || st.lastActionType || "—";
 
     const lines = [
-      "🤖 حالة محاكي الإنسان",
-      "━━━━━━━━━━━━━━━━━━━━━━",
-      "الحالة       : " + statusIcon,
-      "وقت التشغيل  : " + uptime(st.startedAt),
+      fmt.header(),
       "",
-      "📊 الإحصائيات:",
-      "  💚 إشارات تواجد    : " + st.presenceSent,
-      "  ⌨️  جلسات كتابة     : " + st.typingSimulated,
-      "  👁️  محادثات مقروءة  : " + st.threadsRead,
-      "  📂 جلسات تصفح      : " + st.browseSessions,
-      "  📥 تصفح الصندوق    : " + (st.inboxScrolls  || 0),
-      "  📜 قراءة تاريخ     : " + (st.historyScrolls || 0),
-      "  🎬 جلسات رئيسية    : " + st.reelsSessions,
-      "  👤 ملفات زُيرت     : " + st.profileViews,
+      fmt.row("الحالة",       s.running ? "يعمل 🟢" : "متوقف 🔴", "🤖"),
+      fmt.row("وقت التشغيل",  elapsed(st.startedAt),               "⏱️"),
       "",
-      "⏱️  آخر نشاط : " + lastAction,
-      "   " + timeAgo(st.lastActionAt),
+      fmt.divider("─"),
+      "  📊  الإحصائيات",
+      fmt.divider("─"),
+      "",
+      fmt.row("تواجد",         String(st.presenceSent),             "💚"),
+      fmt.row("كتابة",         String(st.typingSimulated),          "⌨️"),
+      fmt.row("محادثات مقروءة",String(st.threadsRead),             "👁️"),
+      fmt.row("تصفح دفعات",    String(st.browseSessions),          "📂"),
+      fmt.row("صندوق",         String(st.inboxScrolls  || 0),      "📥"),
+      fmt.row("تاريخ",         String(st.historyScrolls || 0),     "📜"),
+      fmt.row("رئيسية",        String(st.reelsSessions),           "🎬"),
+      fmt.row("ملفات زُيرت",  String(st.profileViews),             "👤"),
+      "",
+      fmt.inf("آخر نشاط : " + lastAction),
+      fmt.inf(timeAgo(st.lastActionAt)),
     ];
 
     return api.sendMessage(lines.join("\n"), threadID);

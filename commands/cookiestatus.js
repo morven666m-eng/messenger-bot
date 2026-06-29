@@ -1,62 +1,65 @@
 "use strict";
 
-  const cookieRefresher = require("../utils/cookieRefresher");
-  const fs = require("fs");
-  const path = require("path");
+const fs             = require("fs");
+const path           = require("path");
+const fmt            = require("../utils/fmt");
+const cookieRefresher = require("../utils/cookieRefresher");
 
-  module.exports = {
-    name: "cookiestatus",
-    aliases: ["cookies", "cs", "كوكيز"],
-    description: "عرض حالة الكوكيز وتجديدها",
-    usage: "-cookiestatus",
-    adminOnly: true,
+function ago(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60)   return "منذ " + s + " ثانية";
+  if (s < 3600) return "منذ " + Math.floor(s / 60) + " دقيقة";
+  return "منذ " + Math.floor(s / 3600) + " ساعة";
+}
 
-    async execute({ api, event }) {
-      const { threadID } = event;
-      const s = cookieRefresher.status();
+function fileAge(mtimeMs) {
+  const sec = Math.floor((Date.now() - mtimeMs) / 1000);
+  if (sec < 60)   return sec + " ثانية";
+  if (sec < 3600) return Math.floor(sec / 60) + " دقيقة";
+  return Math.floor(sec / 3600) + " ساعة";
+}
 
-      const appStatePath = path.resolve(__dirname, "../appstate.json");
-      let cookieAge = "—";
-      let cookieCount = "—";
-      try {
-        const stat = fs.statSync(appStatePath);
-        const ageSec = Math.floor((Date.now() - stat.mtimeMs) / 1000);
-        cookieAge = ageSec < 60
-          ? ageSec + " ثانية"
-          : ageSec < 3600
-          ? Math.floor(ageSec / 60) + " دقيقة"
-          : Math.floor(ageSec / 3600) + " ساعة";
-        const cookies = JSON.parse(fs.readFileSync(appStatePath, "utf8"));
-        cookieCount = Array.isArray(cookies) ? cookies.length : "—";
-      } catch {}
+module.exports = {
+  name:        "cookiestatus",
+  aliases:     ["cookies", "cs", "كوكيز"],
+  description: "حالة الكوكيز وجاهزية الجلسة.",
+  usage:       "cookiestatus",
+  category:    "Admin",
+  adminOnly:   true,
 
-      const icon = s.active ? "🟢" : "🔴";
-      const lastPush = s.lastPushAt ? _ago(s.lastPushAt) : "لم يتم بعد";
+  async execute({ api, event }) {
+    const { threadID } = event;
+    const s = cookieRefresher.status();
 
-      const msg = [
-        "━━━━━━━━━━━━━━━━━━━━━",
-        "🍪  حالة نظام الكوكيز",
-        "━━━━━━━━━━━━━━━━━━━━━",
-        icon + " التجديد التلقائي: " + (s.active ? "نشط" : "متوقف"),
-        "📦 عدد الكوكيز     : " + cookieCount,
-        "🕐 آخر تعديل ملف  : " + cookieAge + " مضت",
-        "⬆️ مرات الحفظ     : " + s.pushCount,
-        "🔄 كل              : " + s.intervalMinutes + " دقائق",
-        "📡 آخر رفع لـGitHub: " + lastPush,
-        "❌ الأخطاء         : " + s.errorCount,
-        "━━━━━━━━━━━━━━━━━━━━━",
-        "💡 لتحديث الكوكيز:",
-        "   افتح صفحة: /cookies",
-      ].join("\n");
+    const appStatePath = path.resolve(__dirname, "../appstate.json");
+    let cookieAge   = "—";
+    let cookieCount = "—";
+    try {
+      const stat = fs.statSync(appStatePath);
+      cookieAge   = fileAge(stat.mtimeMs) + " مضت";
+      const data  = JSON.parse(fs.readFileSync(appStatePath, "utf8"));
+      cookieCount = Array.isArray(data) ? String(data.length) : "—";
+    } catch {}
 
-      return api.sendMessage(msg, threadID);
-    },
-  };
+    const lastPush = s.lastPushAt ? ago(s.lastPushAt) : "لم يتم بعد";
 
-  function _ago(ts) {
-    const s = Math.floor((Date.now() - ts) / 1000);
-    if (s < 60)  return "منذ " + s + " ثانية";
-    if (s < 3600) return "منذ " + Math.floor(s / 60) + " دقيقة";
-    return "منذ " + Math.floor(s / 3600) + " ساعة";
-  }
-  
+    const lines = [
+      fmt.header(),
+      "",
+      fmt.row("التجديد التلقائي", s.active ? "نشط 🟢"   : "متوقف 🔴", "🍪"),
+      fmt.row("عدد الكوكيز",      cookieCount,                           "📦"),
+      fmt.row("آخر تعديل",        cookieAge,                             "🕐"),
+      "",
+      fmt.divider("─"),
+      "",
+      fmt.row("مرات الحفظ",  String(s.pushCount),          "⬆️"),
+      fmt.row("كل",          s.intervalMinutes + " دقيقة", "🔄"),
+      fmt.row("آخر رفع",     lastPush,                      "📡"),
+      fmt.row("الأخطاء",     String(s.errorCount),          "❌"),
+      "",
+      fmt.inf("لتحديث الكوكيز: افتح صفحة /cookies"),
+    ];
+
+    return api.sendMessage(lines.join("\n"), threadID);
+  },
+};

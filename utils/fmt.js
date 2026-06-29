@@ -1,63 +1,73 @@
 "use strict";
 /**
- * fmt.js — Shared formatting helpers for consistent bot message style.
+ * fmt.js — Shared formatting helpers (Tesla theme).
  *
- * Design language (Phoenix theme):
- *   ╔══[ 🔥 PHOENIX • v2.1.0 ]══╗
+ *   ╔══[ ⚡ TESLA  •  v2.1.0 ]══╗
  *   ╚═══════════════════════════╝
- *   ◆ LABEL        ▸  value
+ *   ◆ LABEL·······▸  value
  *   ══════════════════════════════
  */
 
 const config = require("../config.json");
 
-/**
- * Header box — used at start of rich responses.
- * @param {string} [subtitle]  optional line below bot name
- */
+// ── Header ────────────────────────────────────────────────────────────────────
 function header(subtitle) {
-  const name = (config.bot?.name || "PHOENIX").toUpperCase();
+  const name = (config.bot?.name || "TESLA").toUpperCase();
   const ver  =  config.bot?.version || "2.1.0";
-  const top  = `╔══[ 🔥 ${name}  •  v${ver} ]══╗`;
+  const top  = `╔══[ ⚡ ${name}  •  v${ver} ]══╗`;
   const bot  = `╚${"═".repeat(top.length - 2)}╝`;
-  if (subtitle) {
-    return `${top}\n║  ${subtitle}\n${bot}`;
-  }
+  if (subtitle) return `${top}\n║  ${subtitle}\n${bot}`;
   return `${top}\n${bot}`;
 }
 
-/** Bold section separator */
-function divider(char) {
-  return (char || "═").repeat(33);
-}
+// ── Separators ────────────────────────────────────────────────────────────────
+function divider(char) { return (char || "═").repeat(33); }
+function thin()        { return "─".repeat(33); }
 
-/** Thin separator */
-function thin() {
-  return "─".repeat(33);
-}
-
-/**
- * Data row:  ◆ LABEL        ▸  value
- * Pads label to 12 chars for alignment.
- */
+// ── Rows ──────────────────────────────────────────────────────────────────────
 function row(label, value, icon) {
   const ic  = icon ? icon + " " : "◆ ";
   const lbl = (label + " ").padEnd(12, "·");
   return `${ic}${lbl}▸  ${value}`;
 }
 
-/** Bold section title */
-function section(title) {
-  return `\n【 ${title} 】`;
-}
+// ── Section title ─────────────────────────────────────────────────────────────
+function section(title) { return `\n【 ${title} 】`; }
 
-/** Success / error / warning / info shortcuts */
+// ── Status helpers ────────────────────────────────────────────────────────────
 const ok  = (msg) => `✅  ${msg}`;
 const err = (msg) => `✗  ${msg}`;
 const wrn = (msg) => `⚠️  ${msg}`;
 const inf = (msg) => `◆  ${msg}`;
 
-/** Uptime formatter */
+/** Status badge — ✅ label (on) or ❌ label (off) */
+function badge(label, on) {
+  return on ? `✅  ${label}` : `❌  ${label}`;
+}
+
+/**
+ * Quick panel — clean bordered block.
+ *
+ * panel("🔒 قفل البوت", [
+ *   ["الحالة",  "مفعّل"],
+ *   ["المجموعة",".."],
+ * ])
+ */
+function panel(title, rows) {
+  const W    = 35;
+  const line = "─".repeat(W);
+  const lines = [`┌─ ${title} ${"─".repeat(Math.max(0, W - [...title].length - 3))}┐`];
+  lines.push("│");
+  for (const [k, v] of rows) {
+    const label = (k + " ").padEnd(14, "·");
+    lines.push(`│  ${label}  ${v}`);
+  }
+  lines.push("│");
+  lines.push(`└${"─".repeat(W + 2)}┘`);
+  return lines.join("\n");
+}
+
+// ── Uptime ────────────────────────────────────────────────────────────────────
 function uptime(sec) {
   const d = Math.floor(sec / 86400);
   const h = Math.floor((sec % 86400) / 3600);
@@ -71,4 +81,8 @@ function uptime(sec) {
 const LINE = "═════════════════════════════════";
 const THIN = "─────────────────────────────────";
 
-module.exports = { header, divider, thin, row, section, ok, err, wrn, inf, uptime, LINE, THIN };
+module.exports = {
+  header, divider, thin, row, section,
+  ok, err, wrn, inf, badge, panel, uptime,
+  LINE, THIN,
+};

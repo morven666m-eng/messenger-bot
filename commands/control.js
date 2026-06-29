@@ -26,6 +26,7 @@ function lnStatus(threadID) {
 }
 
 async function showPanel(api, threadID) {
+  const fmt    = require("../utils/fmt");
   const cached = groupsCache.get(threadID) || {};
   const stats  = groupStats.get(threadID) || { messageCount: 0, commandCount: 0, lastMessageAt: 0 };
   let name = cached.name || threadID, members = cached.memberCount || "?", admins = "?";
@@ -37,35 +38,43 @@ async function showPanel(api, threadID) {
     groupsCache.set(threadID, { ...cached, name, memberCount: members });
   } catch {}
   const lastActive = stats.lastMessageAt
-    ? new Date(stats.lastMessageAt).toLocaleString("ar-SA", { hour:"2-digit", minute:"2-digit", day:"numeric", month:"numeric" })
-    : "لا يوجد";
+    ? new Date(stats.lastMessageAt).toLocaleString("ar-SA", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" })
+    : "—";
+  const p = config.prefix;
   return api.sendMessage([
-    "┌─ 🎛️  لوحة التحكم ──────────────────┐",
-    "│",
-    "│ 📌 " + name,
-    "│ 👥 الأعضاء: " + members + "  |  👑 المشرفون: " + admins,
-    "│",
-    "│ 🔒 قفل الرسائل : " + (lockedThreads.has(threadID) ? "مُفعَّل ❌" : "غير مفعّل ✅"),
-    "│ 🏷️  قفل الاسم  : " + lnStatus(threadID),
-    "│ 🔇 الكتم       : " + muteStatus(threadID),
-    "│ 🤖 رد تلقائي  : " + arStatus(threadID),
-    "│",
-    "│ 📨 الرسائل: " + stats.messageCount + "  |  ⚡ الأوامر: " + stats.commandCount,
-    "│ 🕒 آخر نشاط: " + lastActive,
-    "│",
-    "└────────────────────────────────────┘",
+    fmt.header(),
     "",
-    "📋 الأوامر:",
-    "  -control lock / unlock     ← قفل/فتح الرسائل",
-    "  -control mute [دق] / unmute← كتم/رفع الكتم",
-    "  -control lockname [اسم]    ← قفل اسم المجموعة",
-    "  -control unlockname        ← رفع قفل الاسم",
-    "  -control rename [اسم]      ← تغيير الاسم",
-    "  -control members           ← قائمة الأعضاء",
-    "  -control stats             ← الإحصائيات",
-    "  -control kick [ID]         ← طرد عضو",
-    "  -control ar set [رسالة]    ← تفعيل رد تلقائي",
-    "  -control remote            ← تحكم عن بُعد",
+    fmt.row("المجموعة",    name,                                                   "📌"),
+    fmt.row("الأعضاء",     members + " عضو  |  " + admins + " مشرف",             "👥"),
+    "",
+    fmt.divider("─"),
+    "",
+    fmt.row("قفل البوت",   lockedThreads.has(threadID) ? "مفعّل 🔒" : "معطّل 🔓", "🔒"),
+    fmt.row("قفل الاسم",   lnStatus(threadID),                                     "🏷️"),
+    fmt.row("الكتم",       muteStatus(threadID),                                   "🔇"),
+    fmt.row("رد تلقائي",   arStatus(threadID),                                     "🤖"),
+    "",
+    fmt.divider("─"),
+    "",
+    fmt.row("الرسائل",    String(stats.messageCount),                              "📨"),
+    fmt.row("الأوامر",    String(stats.commandCount),                              "⚡"),
+    fmt.row("آخر نشاط",   lastActive,                                              "🕒"),
+    "",
+    fmt.divider("─"),
+    "  📋  الأوامر المتاحة",
+    fmt.divider("─"),
+    "",
+    fmt.row("lock / unlock",    "قفل/فتح البوت",                "🔒"),
+    fmt.row("mute [دق] / unmute","كتم المجموعة مؤقتاً",         "🔇"),
+    fmt.row("lockname [اسم]",   "قفل اسم المجموعة",             "🏷️"),
+    fmt.row("rename [اسم]",     "تغيير اسم المجموعة",           "✏️"),
+    fmt.row("members",          "قائمة الأعضاء",                 "👥"),
+    fmt.row("stats",            "الإحصائيات",                    "📊"),
+    fmt.row("kick [ID]",        "طرد عضو",                       "🚪"),
+    fmt.row("ar set [رسالة]",   "ضبط رد تلقائي",                "🤖"),
+    fmt.row("remote",           "تحكم بمجموعة أخرى عن بُعد",   "📡"),
+    "",
+    fmt.inf("البادئة: " + p + "control <أمر>"),
   ].join("\n"), threadID);
 }
 
