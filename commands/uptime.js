@@ -316,7 +316,7 @@ module.exports = {
     } catch {}
 
     const cmdCount = commands ? [...new Set(commands.values())].length : 0;
-    const admins   = Array.isArray(config.bot.adminIDs) ? config.bot.adminIDs.length : 0;
+    const admins   = Array.isArray(config.bot?.adminIDs) ? config.bot.adminIDs.length : 0;
 
     const info = {
       botName:  config.bot?.name    || "TESLA",
