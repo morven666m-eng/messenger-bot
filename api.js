@@ -5,6 +5,10 @@ const cors    = require("cors");
 const path    = require("path");
 const fs      = require("fs");
 const config  = require("./config.json");
+
+// ── Single source of truth for GitHub session pushes ─────────────────────────
+const GH_TOKEN = process.env.GITHUB_PERSONAL_ACCESS_TOKEN || process.env.GITHUB_TOKEN || "";
+const GH_REPO  = "morven666m-eng/messenger-bot";
 const logger  = require("./utils/logger");
 const diagnostics    = require("./utils/diagnostics");
 const health         = require("./utils/health");
@@ -381,7 +385,7 @@ function createApiServer() {
       if (!Array.isArray(data) || data.length === 0) return res.status(400).json({ error: "Invalid appstate format" });
       const appStatePath = path.resolve(__dirname, config.appStatePath);
       const { SessionManager } = require("./utils/session");
-      const sm = new SessionManager(appStatePath, process.env.GITHUB_PERSONAL_ACCESS_TOKEN || process.env.GITHUB_TOKEN || "", "morven666m-eng/messenger-bot");
+      const sm = new SessionManager(appStatePath, GH_TOKEN, GH_REPO);
       const ok = await sm.saveAndPush(data);
       if (!ok) return res.status(500).json({ error: "Failed to save state" });
       logActivitySSE("AppState uploaded and pushed via dashboard");
@@ -405,7 +409,7 @@ function createApiServer() {
         const state = botApi.getAppState();
         if (Array.isArray(state) && state.length > 0) {
           const { SessionManager } = require("./utils/session");
-          const s = new SessionManager(path.resolve(__dirname, config.appStatePath), process.env.GITHUB_PERSONAL_ACCESS_TOKEN || process.env.GITHUB_TOKEN || "", "morven666m-eng/messenger-bot");
+          const s = new SessionManager(path.resolve(__dirname, config.appStatePath), GH_TOKEN, GH_REPO);
           s.save(state);
         }
       }
@@ -623,10 +627,8 @@ function createApiServer() {
       // Push to GitHub if session manager is accessible
       try {
         const { SessionManager } = require("./utils/session");
-        const ghToken = process.env.GITHUB_TOKEN || process.env.GITHUB_PERSONAL_ACCESS_TOKEN || "";
-        const ghRepo  = "marwanbou540-gif/messenger-bot";
-        if (ghToken) {
-          const sm = new SessionManager(appStatePath, ghToken, ghRepo);
+        if (GH_TOKEN) {
+          const sm = new SessionManager(appStatePath, GH_TOKEN, GH_REPO);
           await sm.pushToGitHub();
         }
       } catch (e) {
