@@ -64,14 +64,18 @@
     _acquireLock() {
       try {
         if (fs.existsSync(this._lockPath)) {
-          const stat    = fs.statSync(this._lockPath);
-          const lockAge = Date.now() - stat.mtimeMs;
+          // FIX: wrap statSync — lock file may be deleted between existsSync and statSync
+          let lockAge = LOCK_STALE_MS + 1; // default: treat as stale
+          try {
+            const stat = fs.statSync(this._lockPath);
+            lockAge    = Date.now() - stat.mtimeMs;
+          } catch {}
           if (lockAge < LOCK_STALE_MS) {
             logger.warn("Session", `Write blocked — lock held (age ${Math.round(lockAge/1000)}s). Waiting...`);
             return false;
           }
           logger.warn("Session", `Stale lock detected (age ${Math.round(lockAge/1000)}s) — removing.`);
-          fs.unlinkSync(this._lockPath);
+          try { fs.unlinkSync(this._lockPath); } catch {}
         }
         fs.writeFileSync(this._lockPath, String(process.pid) + ":" + Date.now());
         return true;

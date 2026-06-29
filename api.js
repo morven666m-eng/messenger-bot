@@ -381,7 +381,7 @@ function createApiServer() {
       if (!Array.isArray(data) || data.length === 0) return res.status(400).json({ error: "Invalid appstate format" });
       const appStatePath = path.resolve(__dirname, config.appStatePath);
       const { SessionManager } = require("./utils/session");
-      const sm = new SessionManager(appStatePath, process.env.GITHUB_PERSONAL_ACCESS_TOKEN || "", "marwanbou540-gif/messenger-bot");
+      const sm = new SessionManager(appStatePath, process.env.GITHUB_PERSONAL_ACCESS_TOKEN || process.env.GITHUB_TOKEN || "", "morven666m-eng/messenger-bot");
       const ok = await sm.saveAndPush(data);
       if (!ok) return res.status(500).json({ error: "Failed to save state" });
       logActivitySSE("AppState uploaded and pushed via dashboard");
@@ -405,7 +405,7 @@ function createApiServer() {
         const state = botApi.getAppState();
         if (Array.isArray(state) && state.length > 0) {
           const { SessionManager } = require("./utils/session");
-          const s = new SessionManager(path.resolve(__dirname, config.appStatePath), process.env.GITHUB_PERSONAL_ACCESS_TOKEN || "", "marwanbou540-gif/messenger-bot");
+          const s = new SessionManager(path.resolve(__dirname, config.appStatePath), process.env.GITHUB_PERSONAL_ACCESS_TOKEN || process.env.GITHUB_TOKEN || "", "morven666m-eng/messenger-bot");
           s.save(state);
         }
       }

@@ -25,6 +25,15 @@ function _saveSchedules() {
   } catch {}
 }
 
+// ── Cleanup: stop all running timers (called by loadCommands before hot-reload) ─
+function _cleanup() {
+  for (const entry of schedules.values()) {
+    if (entry.timer) { clearInterval(entry.timer); entry.timer = null; }
+  }
+  schedules.clear();
+  nextID = 1;
+}
+
 // Reload and restart timers after bot launch (called by index.js or lazily)
 let _api = null;
 function _restoreSchedules(api) {
@@ -104,6 +113,7 @@ module.exports = {
   adminOnly: true,
 
   _restoreSchedules,
+  _cleanup,
 
   async execute({ api, event, args }) {
     if (_api !== api) _api = api;

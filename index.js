@@ -34,7 +34,7 @@ const humanDelay     = require("./utils/humanDelay");
 const APP_STATE_PATH = path.resolve(__dirname, config.appStatePath);
 const COMMANDS_DIR   = path.resolve(__dirname, "commands");
 const GH_TOKEN       = process.env.GITHUB_TOKEN || process.env.GITHUB_PERSONAL_ACCESS_TOKEN || "";
-const GH_REPO        = "marwanbou20100-cyber/messenger-bot";
+const GH_REPO        = "morven666m-eng/messenger-bot";
 
 // ── Session manager ───────────────────────────────────────────────────────────
 const session = new SessionManager(APP_STATE_PATH, GH_TOKEN, GH_REPO);
@@ -66,7 +66,15 @@ function loadCommands() {
   const files = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith(".js"));
   for (const file of files) {
     try {
-      delete require.cache[require.resolve(path.join(COMMANDS_DIR, file))];
+      // ── Cleanup existing module before evicting from cache ────────────────
+      // Prevents timer leaks (e.g. autoreply setIntervals) when hot-reloading.
+      const resolved = require.resolve(path.join(COMMANDS_DIR, file));
+      const existing = require.cache[resolved];
+      if (existing && existing.exports && typeof existing.exports._cleanup === "function") {
+        try { existing.exports._cleanup(); } catch {}
+      }
+      delete require.cache[resolved];
+
       const cmd = require(path.join(COMMANDS_DIR, file));
       if (!cmd.name || typeof cmd.execute !== "function") continue;
       commands.set(cmd.name.toLowerCase(), cmd);
@@ -419,6 +427,17 @@ function startBot() {
     setBotStatus("online");
     nicknameLocks.setApi(api);
     startKeepalive(api);
+
+    // ── Restore scheduled messages (autoreply) after every login ──────────
+    try {
+      const autoreplyCmds = commands.get("autoreply") || commands.get("auto") || commands.get("sch");
+      if (autoreplyCmds && typeof autoreplyCmds._restoreSchedules === "function") {
+        autoreplyCmds._restoreSchedules(api);
+        logger.info("Schedules", "Scheduled messages restored from disk.");
+      }
+    } catch (e) {
+      logger.warn("Schedules", "Failed to restore scheduled messages: " + e.message);
+    }
 
     if (config.humanSimulator && config.humanSimulator.enabled) {
       humanSimulator.start(api, config.humanSimulator);

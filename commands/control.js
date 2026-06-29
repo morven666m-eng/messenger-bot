@@ -8,7 +8,7 @@ const pendingReplies     = require("../utils/pendingReplies");
 const threadScanner      = require("../utils/threadScanner");
 const config             = require("../config.json");
 
-function isAdmin(id) { return (config.bot.adminIDs || []).includes(String(id)); }
+function isAdmin(id) { return require("../utils/botAdmins").isAdmin(String(id)); }
 
 function muteStatus(threadID) {
   const ex = mutedThreads.get(threadID);
@@ -376,7 +376,8 @@ async function showRemoteMenu(api, replyTID, senderID, target) {
         }
 
                 default:
-          _api.sendMessage("❌ خيار غير صحيح. اختر رقماً من القائمة.", rTID);
+          await _api.sendMessage("❌ خيار غير صحيح. اختر رقماً من 1 إلى 11، أو 0 للإلغاء، أو 00 للخروج.", rTID);
+          return pendingReplies.KEEP; // FIX: keep menu alive after invalid input
       }
 
       // Direct actions (1, 5, 6, 7, 8, and non-sub branches of 2/9)
