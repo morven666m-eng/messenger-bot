@@ -1,68 +1,104 @@
 "use strict";
 
-const fs     = require("fs");
-const path   = require("path");
 const config = require("../config.json");
-const fmt    = require("../utils/fmt");
 
-const GIF_PATH = path.resolve(__dirname, "../assets/help-banner.gif");
-
-const COMMANDS = [
-  { cmd: "help",           desc: "عرض هذه القائمة" },
-  { cmd: "control",        desc: "التحكم بإعدادات البوت" },
-  { cmd: "rename",         desc: "تغيير اسم المجموعة / قفله" },
-  { cmd: "rename unlock",  desc: "رفع قفل اسم المجموعة" },
-  { cmd: "nickname",       desc: "تعيين / قفل / مسح الكنيات" },
-  { cmd: "lock",           desc: "قفل البوت — لا يستجيب إلا للمشرفين" },
-  { cmd: "uptime",         desc: "مدة تشغيل البوت" },
-  { cmd: "autoreply",      desc: "الردود التلقائية" },
-  { cmd: "simstatus",      desc: "حالة محاكي الإنسان" },
-  { cmd: "cookiestatus",   desc: "حالة تحديث الكوكيز" },
-  { cmd: "addadmin",       desc: "رفع عضو لمشرف بوت (رد على رسالته)" },
-  { cmd: "restart",        desc: "إعادة تشغيل البوت" },
+// ─── Command registry ─────────────────────────────────────────────────────────
+const CATEGORIES = [
+  {
+    icon: "⚡",
+    title: "عام",
+    commands: [
+      { cmd: "help",         aliases: "مساعدة",    desc: "عرض هذه القائمة" },
+      { cmd: "uptime",       aliases: "up · stats", desc: "لوحة حالة البوت" },
+    ],
+  },
+  {
+    icon: "⚙️",
+    title: "إدارة البوت",
+    commands: [
+      { cmd: "control",      aliases: "",           desc: "التحكم بإعدادات البوت" },
+      { cmd: "lock",         aliases: "",           desc: "قفل البوت — مشرفون فقط" },
+      { cmd: "restart",      aliases: "",           desc: "إعادة تشغيل البوت" },
+      { cmd: "addadmin",     aliases: "",           desc: "ترقية عضو إلى مشرف (رد)" },
+    ],
+  },
+  {
+    icon: "✏️",
+    title: "تخصيص المجموعة",
+    commands: [
+      { cmd: "rename",       aliases: "",           desc: "تغيير / قفل اسم المجموعة" },
+      { cmd: "rename unlock",aliases: "",           desc: "رفع قفل الاسم" },
+      { cmd: "nickname",     aliases: "",           desc: "تعيين / قفل / مسح الكنيات" },
+      { cmd: "autoreply",    aliases: "",           desc: "إدارة الردود التلقائية" },
+    ],
+  },
+  {
+    icon: "📡",
+    title: "حالة النظام",
+    commands: [
+      { cmd: "simstatus",    aliases: "",           desc: "حالة محاكي الإنسان" },
+      { cmd: "cookiestatus", aliases: "",           desc: "حالة تحديث الكوكيز" },
+    ],
+  },
 ];
 
+// ─── Box drawing helpers ──────────────────────────────────────────────────────
+const W  = 38;                                 // inner width
+const HL = "─".repeat(W);                     // horizontal line
+const TL = "╔" + "═".repeat(W) + "╗";        // top
+const BL = "╚" + "═".repeat(W) + "╝";        // bottom
+const ML = "╠" + "═".repeat(W) + "╣";        // middle divider
+const row = (text) => {
+  // pad text to fill inner width (handles Arabic / mixed)
+  const len  = [...text].length;               // codepoint length
+  const pad  = Math.max(0, W - len - 1);
+  return "║ " + text + " ".repeat(pad) + "║";
+};
+const blank = row("");
+
+// ─── Builder ─────────────────────────────────────────────────────────────────
 module.exports = {
-  name: "help",
-  aliases: ["مساعدة", "commands", "cmds"],
+  name:        "help",
+  aliases:     ["مساعدة", "commands", "cmds"],
   description: "عرض قائمة الأوامر المتاحة.",
-  usage: "help",
-  category: "General",
+  usage:       "help",
+  category:    "General",
 
-  async execute({ api, event }) {
+  execute({ api, event }) {
     const { threadID } = event;
-    const p    = config.prefix;
-    const name = (config.bot && config.bot.name) || "Phoenix";
+    const p    = config.prefix    || "-";
+    const name = (config.bot?.name    || "TESLA").toUpperCase();
+    const ver  =  config.bot?.version || "2.1.0";
 
-    const lines = [
-      fmt.header(),
-      "",
-      "🤖  " + name + " — الأوامر المتاحة",
-      fmt.divider(),
-    ];
+    const lines = [];
 
-    for (const { cmd, desc } of COMMANDS) {
-      lines.push(fmt.row(p + cmd, desc, "›"));
+    // ── Header ──────────────────────────────────────────────────────────────
+    lines.push(TL);
+    lines.push(row(`  ⚡  ${name}  •  v${ver}`));
+    lines.push(row(`  📋  الأوامر المتاحة`));
+    lines.push(ML);
+
+    // ── Categories ──────────────────────────────────────────────────────────
+    for (const cat of CATEGORIES) {
+      // Category header
+      lines.push(row(`${cat.icon}  ${cat.title}`));
+      lines.push(row(HL));
+
+      for (const { cmd, aliases, desc } of cat.commands) {
+        const cmdStr  = (p + cmd).padEnd(16);
+        const aliasHint = aliases ? ` (${aliases})` : "";
+        lines.push(row(`  ${cmdStr}▸ ${desc}${aliasHint}`));
+      }
+
+      lines.push(blank);
     }
 
-    lines.push(
-      "",
-      fmt.divider(),
-      fmt.inf("جميع الأوامر تبدأ بـ  " + p),
-    );
+    // ── Footer ───────────────────────────────────────────────────────────────
+    lines.push("╠" + "═".repeat(W) + "╣");
+    lines.push(row(`◆  البادئة : [ ${p} ]`));
+    lines.push(row(`◆  مثال   : ${p}uptime`));
+    lines.push(BL);
 
-    // إرسال الـ GIF أولاً إن كان موجوداً
-    if (fs.existsSync(GIF_PATH)) {
-      try {
-        await api.sendMessage(
-          { body: lines.join("\n"), attachment: fs.createReadStream(GIF_PATH) },
-          threadID
-        );
-        return;
-      } catch {}
-    }
-
-    // fallback: نص فقط بدون GIF
     api.sendMessage(lines.join("\n"), threadID);
   },
 };
