@@ -14,280 +14,344 @@ try {
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
-  bg:        "#080b10",
-  surface:   "#0d1117",
-  card:      "#111622",
-  border:    "#1c2333",
-  borderAcc: "#e8263c",
-  red:       "#e8263c",
-  redDim:    "#7a0f1a",
-  redGlow:   "rgba(232,38,60,0.18)",
-  cyan:      "#38bdf8",
-  green:     "#22d3a4",
-  amber:     "#fbbf24",
-  purple:    "#a78bfa",
-  text:      "#e2e8f0",
-  textDim:   "#4b5a72",
-  textMid:   "#8899aa",
-  white:     "#ffffff",
+  bg:      "#02050f",
+  cyan:    "#00d4ff",
+  green:   "#00ff99",
+  amber:   "#ffb300",
+  purple:  "#b06aff",
+  white:   "#e8f4ff",
+  dimText: "#2a4060",
+  mid:     "#4a6a88",
+  gridLn:  "rgba(0,180,255,0.06)",
+  surface: "rgba(0,20,50,0.55)",
 };
 
-// ── Font helpers ──────────────────────────────────────────────────────────────
-const F = {
-  bold:  (sz) => `bold ${sz}px JBMono, monospace`,
-  reg:   (sz) => `${sz}px JBMono, monospace`,
-};
+const RINGS = [
+  { color: C.cyan,   label: "SEC",  max: 60  },
+  { color: C.green,  label: "MIN",  max: 60  },
+  { color: C.amber,  label: "HRS",  max: 24  },
+  { color: C.purple, label: "DAYS", max: 30  },
+];
 
+function font(sz, bold = true) {
+  return (bold ? "bold " : "") + sz + "px JBMono, monospace";
+}
 function pad(n) { return String(n).padStart(2, "0"); }
 
-// ── Rounded rect ─────────────────────────────────────────────────────────────
-function rrect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-// ── Progress bar ─────────────────────────────────────────────────────────────
-function drawBar(ctx, x, y, w, h, pct, color, bg) {
-  ctx.fillStyle = bg || "#0a0e14";
-  rrect(ctx, x, y, w, h, h / 2); ctx.fill();
-  if (pct > 0) {
-    ctx.fillStyle = color;
-    rrect(ctx, x, y, Math.max(h, w * Math.min(pct, 1)), h, h / 2); ctx.fill();
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function drawGrid(ctx, W, H) {
+  ctx.strokeStyle = C.gridLn;
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 }
 
-// ── Glowing dot ──────────────────────────────────────────────────────────────
-function drawDot(ctx, cx, cy, r, color) {
-  ctx.shadowColor = color; ctx.shadowBlur = 14;
-  ctx.fillStyle = color;
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0;
+function drawCorner(ctx, x, y, dx, dy, color) {
+  const len = 20;
+  ctx.strokeStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + dx * len, y);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x, y + dy * len);
+  ctx.stroke();
 }
 
-// ── Time segment panel ────────────────────────────────────────────────────────
-function drawTimePanel(ctx, x, y, w, h, value, label) {
-  // card bg
-  ctx.fillStyle = C.card;
-  rrect(ctx, x, y, w, h, 10); ctx.fill();
-
-  // top accent line
-  ctx.fillStyle = C.red;
-  rrect(ctx, x + 10, y, w - 20, 3, 1.5); ctx.fill();
-
-  // border
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  rrect(ctx, x, y, w, h, 10); ctx.stroke();
-
-  // value
-  ctx.shadowColor = C.red; ctx.shadowBlur = 20;
-  ctx.fillStyle = C.text;
-  ctx.font = F.bold(48);
-  ctx.textAlign = "center";
-  ctx.fillText(value, x + w / 2, y + h / 2 + 14);
-  ctx.shadowBlur = 0;
-
-  // label
-  ctx.fillStyle = C.textDim;
-  ctx.font = F.reg(10);
-  ctx.fillText(label, x + w / 2, y + h - 12);
+function drawRing(ctx, cx, cy, r, frac, color, thick) {
+  const start = -Math.PI / 2;
+  // Track
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  ctx.lineWidth = thick;
+  ctx.stroke();
+  // Arc
+  if (frac > 0) {
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur  = 18;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, start + frac * Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = thick;
+    ctx.lineCap     = "round";
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Dot at arc tip
+  if (frac > 0) {
+    const angle = start + frac * Math.PI * 2;
+    const dx = cx + r * Math.cos(angle);
+    const dy = cy + r * Math.sin(angle);
+    ctx.save();
+    ctx.shadowColor = color; ctx.shadowBlur = 20;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(dx, dy, thick / 2 + 1, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-function drawStatCard(ctx, x, y, w, h, label, value, color, barPct) {
-  // bg
-  ctx.fillStyle = C.card;
-  rrect(ctx, x, y, w, h, 8); ctx.fill();
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  rrect(ctx, x, y, w, h, 8); ctx.stroke();
+function drawCrosshair(ctx, cx, cy, R) {
+  ctx.strokeStyle = "rgba(0,200,255,0.12)";
+  ctx.lineWidth = 1;
+  // Horizontal
+  ctx.beginPath(); ctx.moveTo(cx - R - 20, cy); ctx.lineTo(cx + R + 20, cy); ctx.stroke();
+  // Vertical
+  ctx.beginPath(); ctx.moveTo(cx, cy - R - 20); ctx.lineTo(cx, cy + R + 20); ctx.stroke();
+  // Small tick marks
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const r0 = R + 8, r1 = R + 16;
+    ctx.beginPath();
+    ctx.moveTo(cx + r0 * Math.cos(a), cy + r0 * Math.sin(a));
+    ctx.lineTo(cx + r1 * Math.cos(a), cy + r1 * Math.sin(a));
+    ctx.stroke();
+  }
+}
 
-  // left color bar
+function drawStatRow(ctx, x, y, w, label, value, color) {
+  // Row background
+  ctx.fillStyle = "rgba(0,30,60,0.6)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, 48, 6);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,180,255,0.12)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Left color tab
   ctx.fillStyle = color;
-  rrect(ctx, x, y + 10, 3, h - 20, 1.5); ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(x, y + 8, 3, 32, 1.5);
+  ctx.fill();
 
-  // label
-  ctx.fillStyle = C.textDim;
-  ctx.font = F.reg(9);
+  // Label
+  ctx.fillStyle = C.mid;
+  ctx.font = font(8, false);
   ctx.textAlign = "left";
   ctx.fillText(label.toUpperCase(), x + 14, y + 20);
 
-  // value
-  ctx.fillStyle = value === "—" ? C.textDim : color;
-  ctx.font = F.bold(20);
-  ctx.fillText(value, x + 14, y + 46);
+  // Value
+  ctx.fillStyle = color;
+  ctx.font = font(18);
+  ctx.fillText(value, x + 14, y + 42);
+}
 
-  // optional mini bar
-  if (barPct !== undefined) {
-    drawBar(ctx, x + 14, y + h - 18, w - 28, 5, barPct, color);
-  }
+function drawStatusBadge(ctx, cx, y, label, color) {
+  const bW = 110, bH = 26, bX = cx - bW / 2;
+  ctx.fillStyle = color + "22";
+  ctx.beginPath(); ctx.roundRect(bX, y, bW, bH, 13); ctx.fill();
+  ctx.strokeStyle = color + "88"; ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = font(10);
+  ctx.textAlign = "center";
+  ctx.fillText("● " + label, cx, y + bH / 2 + 4);
 }
 
 // ── Main card builder ─────────────────────────────────────────────────────────
 async function buildCard(info) {
-  const W = 860, H = 480;
+  const W = 900, H = 500;
   const canvas = createCanvas(W, H);
   const ctx    = canvas.getContext("2d");
 
   // ── Background ─────────────────────────────────────────────────────────────
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
+  drawGrid(ctx, W, H);
 
-  // Subtle red radial accent (top-left)
-  const grd = ctx.createRadialGradient(0, 0, 10, 0, 0, 340);
-  grd.addColorStop(0, "rgba(232,38,60,0.09)");
-  grd.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+  // Radial vignette (edges darker)
+  const vig = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, W * 0.75);
+  vig.addColorStop(0, "rgba(0,0,0,0)");
+  vig.addColorStop(1, "rgba(0,0,0,0.65)");
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
 
   // Outer border
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1.5;
-  rrect(ctx, 1, 1, W - 2, H - 2, 14); ctx.stroke();
+  ctx.strokeStyle = "rgba(0,160,255,0.2)"; ctx.lineWidth = 1.5;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  // Corner marks
+  const cc = "rgba(0,200,255,0.5)";
+  drawCorner(ctx,  2,   2,  1,  1, cc);
+  drawCorner(ctx, W-2,  2, -1,  1, cc);
+  drawCorner(ctx,  2,  H-2, 1, -1, cc);
+  drawCorner(ctx, W-2, H-2,-1, -1, cc);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // HEADER  (y: 0 → 60)
+  // CIRCULAR HUD (center of canvas)
   // ═══════════════════════════════════════════════════════════════════════════
-  ctx.fillStyle = C.surface;
-  rrect(ctx, 1, 1, W - 2, 60, 14); ctx.fill();
-  // bottom separator
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(1, 61); ctx.lineTo(W - 1, 61); ctx.stroke();
+  const cx = W / 2, cy = H / 2;
 
-  // Online dot
-  drawDot(ctx, 28, 30, 6, C.red);
+  // Outer glow halo
+  const halo = ctx.createRadialGradient(cx, cy, 120, cx, cy, 240);
+  halo.addColorStop(0, "rgba(0,180,255,0.08)");
+  halo.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = halo; ctx.fillRect(0, 0, W, H);
+
+  drawCrosshair(ctx, cx, cy, 175);
+
+  // 4 rings  (inner → outer: secs, mins, hrs, days)
+  const values = [info.secs, info.mins, info.hours, info.days];
+  const radii  = [80, 108, 136, 164];
+  const thick  = [10, 10, 10, 10];
+
+  for (let i = 0; i < 4; i++) {
+    const frac  = Math.min(values[i] / RINGS[i].max, 1);
+    drawRing(ctx, cx, cy, radii[i], frac, RINGS[i].color, thick[i]);
+  }
+
+  // Center circle fill
+  ctx.fillStyle = "rgba(0,10,30,0.85)";
+  ctx.beginPath(); ctx.arc(cx, cy, 66, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "rgba(0,180,255,0.15)"; ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Center: big time string
+  const upStr = pad(info.days) + ":" + pad(info.hours) + ":" + pad(info.mins) + ":" + pad(info.secs);
+  ctx.save();
+  ctx.shadowColor = C.cyan; ctx.shadowBlur = 16;
+  ctx.fillStyle = C.white;
+  ctx.font = font(18);
+  ctx.textAlign = "center";
+  ctx.fillText(upStr, cx, cy - 6);
+  ctx.restore();
+
+  ctx.fillStyle = C.dimText;
+  ctx.font = font(7, false);
+  ctx.textAlign = "center";
+  ctx.fillText("DD : HH : MM : SS", cx, cy + 12);
+
+  // Status badge under circle
+  drawStatusBadge(ctx, cx, cy + 82, "ONLINE", C.green);
+
+  // Ring legend (below arc on each side)
+  const legendItems = [
+    { label: "SECS",  color: C.cyan,   lx: cx + 185, ly: cy + 64 },
+    { label: "MINS",  color: C.green,  lx: cx + 185, ly: cy + 84 },
+    { label: "HRS",   color: C.amber,  lx: cx + 185, ly: cy + 104 },
+    { label: "DAYS",  color: C.purple, lx: cx + 185, ly: cy + 124 },
+  ];
+  for (const { label, color, lx, ly } of legendItems) {
+    // color dot
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(lx - 12, ly - 4, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.mid;
+    ctx.font = font(9, false);
+    ctx.textAlign = "left";
+    ctx.fillText(label, lx, ly);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LEFT PANEL — Bot identity
+  // ═══════════════════════════════════════════════════════════════════════════
+  const LP = 24;
 
   // Bot name
-  ctx.fillStyle = C.text;
-  ctx.font = F.bold(15);
+  ctx.save();
+  ctx.shadowColor = C.cyan; ctx.shadowBlur = 10;
+  ctx.fillStyle = C.cyan;
+  ctx.font = font(22);
   ctx.textAlign = "left";
-  ctx.fillText((info.botName || "TESLA").toUpperCase(), 46, 36);
+  ctx.fillText((info.botName || "TESLA").toUpperCase(), LP, 58);
+  ctx.restore();
 
-  // Status chip — center
-  const chipW = 90, chipH = 26, chipX = (W - chipW) / 2, chipY = 17;
-  ctx.fillStyle = C.redGlow;
-  rrect(ctx, chipX, chipY, chipW, chipH, 13); ctx.fill();
-  ctx.strokeStyle = C.redDim; ctx.lineWidth = 1;
-  rrect(ctx, chipX, chipY, chipW, chipH, 13); ctx.stroke();
-  ctx.fillStyle = C.red;
-  ctx.font = F.bold(11);
-  ctx.textAlign = "center";
-  ctx.fillText("● ONLINE", chipX + chipW / 2, chipY + chipH / 2 + 4);
+  // Version
+  ctx.fillStyle = C.dimText;
+  ctx.font = font(10, false);
+  ctx.fillText("VERSION  " + info.version, LP, 78);
 
-  // Right: version + lock icon
-  ctx.fillStyle = C.textDim;
-  ctx.font = F.reg(11);
+  // Thin separator
+  ctx.strokeStyle = "rgba(0,200,255,0.15)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(LP, 92); ctx.lineTo(LP + 180, 92); ctx.stroke();
+
+  // Prefix
+  ctx.fillStyle = C.mid;
+  ctx.font = font(9, false);
+  ctx.fillText("PREFIX", LP, 112);
+  ctx.fillStyle = C.white;
+  ctx.font = font(20);
+  ctx.fillText("[  " + info.prefix + "  ]", LP, 138);
+
+  // Platform
+  ctx.fillStyle = C.mid;
+  ctx.font = font(9, false);
+  ctx.fillText("PLATFORM", LP, 166);
+  ctx.fillStyle = C.green;
+  ctx.font = font(13);
+  ctx.fillText(info.platform.toUpperCase(), LP, 184);
+
+  // Node version
+  ctx.fillStyle = C.mid;
+  ctx.font = font(9, false);
+  ctx.fillText("NODE.JS", LP, 208);
+  ctx.fillStyle = C.amber;
+  ctx.font = font(13);
+  ctx.fillText(process.version, LP, 226);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RIGHT PANEL — Stats
+  // ═══════════════════════════════════════════════════════════════════════════
+  const RP = W - 220;
+  const statW = 196;
+  const gap   = 10;
+  const stats = [
+    { label: "RAM Usage",     value: info.memMB + " MB",    color: C.amber  },
+    { label: "Active Groups", value: String(info.groups),   color: C.cyan   },
+    { label: "Commands",      value: String(info.commands), color: C.purple },
+    { label: "Admins",        value: String(info.admins),   color: C.green  },
+  ];
+
+  stats.forEach(({ label, value, color }, i) => {
+    drawStatRow(ctx, RP, 56 + i * (48 + gap), statW, label, value, color);
+  });
+
+  // RAM usage bar inside first stat
+  const memFrac = Math.min(info.memMB / 512, 1);
+  const barX = RP + 14, barY = 56 + 2 + (48 + gap) * 0 + 44;
+  // (no extra bar — value already displayed)
+
+  // Locked row
+  const lockY = 56 + 4 * (48 + gap);
+  ctx.fillStyle = "rgba(0,30,60,0.6)";
+  ctx.beginPath(); ctx.roundRect(RP, lockY, statW, 48, 6); ctx.fill();
+  ctx.strokeStyle = info.locked > 0
+    ? "rgba(255,50,70,0.3)"
+    : "rgba(0,180,255,0.12)";
+  ctx.lineWidth = 1; ctx.stroke();
+
+  const lockColor = info.locked > 0 ? "#ff4455" : C.dimText;
+  ctx.fillStyle = lockColor;
+  ctx.beginPath(); ctx.roundRect(RP, lockY + 8, 3, 32, 1.5); ctx.fill();
+  ctx.fillStyle = C.mid;
+  ctx.font = font(8, false); ctx.textAlign = "left";
+  ctx.fillText("LOCKED GROUPS", RP + 14, lockY + 20);
+  ctx.fillStyle = lockColor;
+  ctx.font = font(18);
+  ctx.fillText(String(info.locked), RP + 14, lockY + 42);
+  // lock icon
+  ctx.font = font(16, false);
+  ctx.fillStyle = lockColor;
   ctx.textAlign = "right";
-  ctx.fillText("v" + info.version, W - 20, 36);
-
-  // Lock indicator
-  const lockCol = info.locked > 0 ? C.red : C.textDim;
-  ctx.fillStyle = lockCol;
-  ctx.font = F.reg(14);
-  ctx.textAlign = "right";
-  ctx.fillText(info.locked > 0 ? "🔒" : "🔓", W - 72, 38);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // UPTIME PANELS  (y: 75 → 210)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const panW = 138, panH = 100, panGap = 18;
-  const totalW = 4 * panW + 3 * panGap;
-  const upX0   = (W - totalW) / 2;
-  const upY    = 76;
-
-  // Section label
-  ctx.fillStyle = C.textDim;
-  ctx.font = F.reg(9);
-  ctx.textAlign = "left";
-  ctx.fillText("UPTIME", 24, 72);
-  // thin rule
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(70, 68); ctx.lineTo(W - 24, 68); ctx.stroke();
-
-  const segs = [
-    { v: pad(info.days),  l: "DAYS"    },
-    { v: pad(info.hours), l: "HOURS"   },
-    { v: pad(info.mins),  l: "MINUTES" },
-    { v: pad(info.secs),  l: "SECONDS" },
-  ];
-
-  segs.forEach(({ v, l }, i) => {
-    const px = upX0 + i * (panW + panGap);
-    drawTimePanel(ctx, px, upY, panW, panH, v, l);
-
-    // colon separator
-    if (i < 3) {
-      ctx.fillStyle = C.border;
-      ctx.font = F.bold(28);
-      ctx.textAlign = "center";
-      ctx.fillText(":", px + panW + panGap / 2, upY + panH / 2 + 10);
-    }
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STATS GRID  (y: 198 → 440)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const gridY   = 196;
-  const cardH   = 80;
-  const cols    = 4;
-  const cardGap = 10;
-  const cardW   = (W - 48 - cardGap * (cols - 1)) / cols;
-
-  // Section label
-  ctx.fillStyle = C.textDim;
-  ctx.font = F.reg(9);
-  ctx.textAlign = "left";
-  ctx.fillText("SYSTEM", 24, gridY - 6);
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(68, gridY - 10); ctx.lineTo(W - 24, gridY - 10); ctx.stroke();
-
-  // Row 1 cards
-  const r1 = [
-    { label: "RAM Usage",      value: info.memMB + " MB",     color: C.amber,  barPct: info.memMB / 512 },
-    { label: "Active Groups",  value: String(info.groups),    color: C.cyan,   barPct: undefined },
-    { label: "Commands",       value: String(info.commands),  color: C.purple, barPct: undefined },
-    { label: "Locked Groups",  value: String(info.locked),    color: info.locked > 0 ? C.red : C.textDim, barPct: undefined },
-  ];
-
-  r1.forEach(({ label, value, color, barPct }, i) => {
-    const cx = 24 + i * (cardW + cardGap);
-    drawStatCard(ctx, cx, gridY, cardW, cardH, label, value, color, barPct);
-  });
-
-  // Row 2 cards
-  const gridY2 = gridY + cardH + cardGap;
-  const r2 = [
-    { label: "Prefix",   value: info.prefix,   color: C.textMid },
-    { label: "Platform", value: info.platform,  color: C.green   },
-    { label: "Admins",   value: String(info.admins), color: C.amber },
-    { label: "Node.js",  value: process.version, color: C.cyan  },
-  ];
-
-  r2.forEach(({ label, value, color }, i) => {
-    const cx = 24 + i * (cardW + cardGap);
-    drawStatCard(ctx, cx, gridY2, cardW, cardH, label, value, color);
-  });
+  ctx.fillText(info.locked > 0 ? "🔒" : "🔓", RP + statW - 12, lockY + 34);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FOOTER
   // ═══════════════════════════════════════════════════════════════════════════
-  const footerY = H - 36;
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(24, footerY); ctx.lineTo(W - 24, footerY); ctx.stroke();
+  const fY = H - 28;
+  ctx.strokeStyle = "rgba(0,180,255,0.1)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(24, fY); ctx.lineTo(W - 24, fY); ctx.stroke();
 
   const now = new Date().toLocaleString("en-GB", {
     hour: "2-digit", minute: "2-digit", second: "2-digit",
     day: "numeric",  month: "short",    year: "numeric",
   });
-  ctx.fillStyle = C.textDim;
-  ctx.font = F.reg(9);
+  ctx.fillStyle = C.dimText;
+  ctx.font = font(8, false);
   ctx.textAlign = "center";
-  ctx.fillText(now + "  ·  " + (info.botName || "TESLA").toUpperCase() + " v" + info.version, W / 2, footerY + 18);
+  ctx.fillText(now + "  ·  " + (info.botName || "TESLA").toUpperCase() + " v" + info.version, W / 2, fY + 16);
 
   return canvas.toBuffer("image/png");
 }
@@ -296,7 +360,7 @@ async function buildCard(info) {
 module.exports = {
   name:        "uptime",
   aliases:     ["up", "stats"],
-  description: "لوحة حالة البوت كصورة.",
+  description: "لوحة حالة البوت — HUD دائري.",
   usage:       "uptime",
   category:    "General",
 
@@ -338,13 +402,12 @@ module.exports = {
         event.threadID
       );
     } catch {
-      // Text fallback
       api.sendMessage(
         `⚡ ${info.botName} v${info.version}\n` +
         `🕐 Uptime : ${days}d ${hours}h ${mins}m ${secs}s\n` +
         `💾 RAM    : ${memMB} MB\n` +
         `👥 Groups : ${groups}  |  🔒 Locked: ${locked}\n` +
-        `📋 Commands: ${cmdCount}  |  🛡 Admins: ${admins}`,
+        `📋 Cmds   : ${cmdCount}  |  🛡 Admins: ${admins}`,
         event.threadID
       );
     } finally {
